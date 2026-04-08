@@ -1,0 +1,6 @@
+node_modules/
+.env
+database/temach.db
+database/temach.db-shm
+database/temach.db-wal
+data/temach-knowledge.json

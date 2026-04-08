@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel Admin — ElTemAIch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="/css/auth.css"/>
+  <style>
+    .tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+    .tab-btn {
+      background: transparent; border: none; border-bottom: 2px solid transparent;
+      color: var(--text-muted); font-family: var(--font-b); font-size: 12px;
+      font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 10px 20px; cursor: pointer; transition: all 0.15s; margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .add-tokens-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .add-tokens-row .form-group { flex: 1; min-width: 120px; }
+    .inline-alert { font-size: 12px; padding: 6px 12px; margin-top: 8px; border: 1px solid; display:none; }
+    .inline-alert.show { display: block; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="2" width="3.5" height="8" rx="1.75" fill="white"/>
+          <rect x="7.5" y="1" width="3.5" height="9" rx="1.75" fill="white"/>
+          <rect x="12" y="1.5" width="3.5" height="8.5" rx="1.75" fill="white"/>
+          <rect x="16.5" y="3" width="3.5" height="7" rx="1.75" fill="white"/>
+          <rect x="2" y="8" width="19" height="7.5" rx="2" fill="white"/>
+          <rect x="0" y="10" width="5" height="4" rx="2" fill="white"/>
+          <rect x="4.5" y="14" width="14" height="5.5" rx="1.5" fill="white"/>
+          <path d="M4 19.5 C2 19.5 1 20.5 1 21.5 C1 22.5 2 23.5 4 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+          <path d="M20 19.5 C22 19.5 23 20.5 23 21.5 C23 22.5 22 23.5 20 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="logo-text"><span class="logo-channel">El<span class="logo-ai">Tem</span>AI<span class="logo-ai">ch</span></span></div>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="nav-link">Chat</a>
+      <a href="/profile" class="nav-link">Perfil</a>
+      <a href="/admin" class="nav-link active">Panel</a>
+      <a href="#" class="nav-link danger" id="logout-btn">Salir</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page">
+  <div style="max-width:1100px;margin:0 auto;padding:0 20px;">
+
+    <div style="margin-bottom:28px;">
+      <div class="page-title">Panel de administración</div>
+      <div class="page-sub">ElTemAIch — Control total</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-box"><div class="s-num" id="s-users">—</div><div class="s-label">Usuarios</div></div>
+      <div class="stat-box"><div class="s-num" id="s-pending">—</div><div class="s-label">Solicitudes pendientes</div></div>
+      <div class="stat-box"><div class="s-num" id="s-tokens">—</div><div class="s-label">Tokens vendidos</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('users', this)">Usuarios</button>
+      <button class="tab-btn" onclick="switchTab('purchases', this)">Solicitudes de compra</button>
+    </div>
+
+    <!-- Tab: Users -->
+    <div class="tab-panel active" id="tab-users">
+      <div class="card" style="overflow-x:auto;">
+        <table class="data-table" id="users-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Usuario</th><th>Email</th><th>Tokens</th><th>Registro</th><th>Agregar tokens</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:20px;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Purchases -->
+    <div class="tab-panel" id="tab-purchases">
+      <div class="card" style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr><th>ID</th><th>Usuario</th><th>Paquete</th><th>Tokens</th><th>USD</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr>
+          </thead>
+          <tbody id="purchases-body">
+            <tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:20px;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const token = localStorage.getItem('temach_token');
+  if (!token) window.location.href = '/login';
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  }
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function loadStats() {
+    const res = await fetch('/api/admin/stats', { headers: authHeaders() });
+    if (res.status === 403) { window.location.href = '/'; return; }
+    const d = await res.json();
+    document.getElementById('s-users').textContent = d.totalUsers;
+    document.getElementById('s-pending').textContent = d.pendingPurchases;
+    document.getElementById('s-tokens').textContent = d.totalTokensSold;
+  }
+
+  async function loadUsers() {
+    const res = await fetch('/api/admin/users', { headers: authHeaders() });
+    const users = await res.json();
+    document.getElementById('users-body').innerHTML = users
+      .filter(u => !u.is_admin)
+      .map(u => {
+        const date = new Date(u.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' });
+        return `<tr>
+          <td>${u.id}</td>
+          <td class="td-highlight">${u.username}</td>
+          <td>${u.email}</td>
+          <td class="td-cyan">${u.tokens}</td>
+          <td>${date}</td>
+          <td>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input id="amt-${u.id}" type="number" min="1" max="9999" value="10"
+                style="width:64px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 8px;font-family:var(--font-b);font-size:13px;outline:none;"/>
+              <button class="btn btn-secondary btn-sm" onclick="addTokens(${u.id}, '${u.username}')">+ Agregar</button>
+            </div>
+            <div class="inline-alert" id="msg-${u.id}"></div>
+          </td>
+        </tr>`;
+      }).join('');
+  }
+
+  async function loadPurchases() {
+    const res = await fetch('/api/admin/purchases', { headers: authHeaders() });
+    const list = await res.json();
+    const tbody = document.getElementById('purchases-body');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:20px;">Sin solicitudes aún</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(p => {
+      const date = new Date(p.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' });
+      const badgeClass = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' }[p.status];
+      const actions = p.status === 'pending'
+        ? `<div style="display:flex;gap:6px;">
+             <button class="btn btn-secondary btn-sm" onclick="approvePurchase(${p.id})">Aprobar</button>
+             <button class="btn btn-danger btn-sm" onclick="rejectPurchase(${p.id})">Rechazar</button>
+           </div>`
+        : '—';
+      return `<tr>
+        <td>${p.id}</td>
+        <td class="td-highlight">${p.username}</td>
+        <td>${p.package_id}</td>
+        <td class="td-cyan">+${p.tokens}</td>
+        <td>$${p.price_usd}</td>
+        <td><span class="badge ${badgeClass}">${p.status}</span></td>
+        <td>${date}</td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function addTokens(userId, username) {
+    const amount = parseInt(document.getElementById(`amt-${userId}`).value);
+    const msgEl = document.getElementById(`msg-${userId}`);
+    msgEl.className = 'inline-alert'; msgEl.textContent = '';
+
+    if (!amount || amount < 1) return;
+
+    try {
+      const res = await fetch('/api/admin/add-tokens', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ userId, amount })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      msgEl.textContent = `✓ ${username} ahora tiene ${data.newBalance} tokens`;
+      msgEl.className = 'inline-alert show';
+      msgEl.style.cssText += ';color:var(--cyan);border-color:rgba(93,255,241,0.3);background:rgba(93,255,241,0.05);';
+      loadUsers();
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'inline-alert show';
+      msgEl.style.cssText += ';color:#ff6666;border-color:rgba(255,5,9,0.4);background:rgba(255,5,9,0.08);';
+    }
+  }
+
+  async function approvePurchase(id) {
+    await fetch('/api/admin/approve-purchase', { method:'POST', headers: authHeaders(), body: JSON.stringify({ requestId: id }) });
+    loadPurchases(); loadStats(); loadUsers();
+  }
+
+  async function rejectPurchase(id) {
+    await fetch('/api/admin/reject-purchase', { method:'POST', headers: authHeaders(), body: JSON.stringify({ requestId: id }) });
+    loadPurchases(); loadStats();
+  }
+
+  document.getElementById('logout-btn').addEventListener('click', (e) => {
+    e.preventDefault(); localStorage.clear(); window.location.href = '/login';
+  });
+
+  loadStats(); loadUsers(); loadPurchases();
+</script>
+</body>
+</html>

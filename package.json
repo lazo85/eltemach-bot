@@ -1,0 +1,25 @@
+{
+  "name": "temach-bot",
+  "version": "1.0.0",
+  "description": "Chatbot IA basado en el canal de YouTube ELTEMACH",
+  "main": "server.js",
+  "scripts": {
+    "start": "node -r dotenv/config server.js",
+    "dev": "node -r dotenv/config --watch server.js",
+    "ingest": "node scripts/ingest.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.84.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "youtubei.js": "^17.0.1"
+  }
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro — ElTemAIch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="/css/auth.css"/>
+  <style>
+    .auth-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 16px 40px; }
+    .auth-box  { width: 100%; max-width: 420px; }
+    .auth-header { text-align: center; margin-bottom: 32px; }
+    .auth-logo { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; margin-bottom: 24px; }
+    .auth-logo-icon { width: 52px; height: 52px; background: var(--red); display: flex; align-items: center; justify-content: center; clip-path: polygon(15% 0%,85% 0%,100% 15%,100% 85%,85% 100%,15% 100%,0% 85%,0% 15%); }
+    .auth-form { display: flex; flex-direction: column; gap: 18px; }
+    .bonus-banner { background: rgba(93,255,241,0.06); border: 1px solid rgba(93,255,241,0.25); padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--cyan); font-weight: 600; }
+    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+    .auth-footer a { color: var(--cyan-dark); text-decoration: none; font-weight: 600; }
+    .auth-footer a:hover { color: var(--cyan); }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-header">
+      <a href="/" class="auth-logo">
+        <div class="auth-logo-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="2" width="3.5" height="8" rx="1.75" fill="white"/>
+            <rect x="7.5" y="1" width="3.5" height="9" rx="1.75" fill="white"/>
+            <rect x="12" y="1.5" width="3.5" height="8.5" rx="1.75" fill="white"/>
+            <rect x="16.5" y="3" width="3.5" height="7" rx="1.75" fill="white"/>
+            <rect x="2" y="8" width="19" height="7.5" rx="2" fill="white"/>
+            <rect x="0" y="10" width="5" height="4" rx="2" fill="white"/>
+            <rect x="4.5" y="14" width="14" height="5.5" rx="1.5" fill="white"/>
+            <path d="M4 19.5 C2 19.5 1 20.5 1 21.5 C1 22.5 2 23.5 4 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+            <path d="M20 19.5 C22 19.5 23 20.5 23 21.5 C23 22.5 22 23.5 20 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+            <line x1="5" y1="15" x2="2" y2="11" stroke="#5DFFF1" stroke-width="1.1" stroke-linecap="round"/>
+            <line x1="19" y1="15" x2="22" y2="11" stroke="#5DFFF1" stroke-width="1.1" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </a>
+      <div class="page-title">Crear cuenta</div>
+      <div class="page-sub">Únete a ElTemAIch</div>
+    </div>
+
+    <div id="google-btn-wrap" style="margin-bottom:12px;display:flex;justify-content:center;">
+      <div id="google-signin-btn"></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">o con email</span>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+
+    <div class="bonus-banner" style="margin-bottom:16px;">
+      ⚡ Recibes <strong style="margin:0 4px;">3 tokens gratis</strong> al registrarte
+    </div>
+
+    <div class="card">
+      <div class="alert" id="alert"></div>
+      <form class="auth-form" id="reg-form">
+        <div class="form-group">
+          <label class="form-label">Nombre de usuario</label>
+          <input class="form-input" type="text" id="username" placeholder="tu_nombre" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div style="position:relative;">
+            <input class="form-input" type="email" id="email" placeholder="tu@email.com" required style="padding-right:36px;"/>
+            <span id="email-status" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;display:none;"></span>
+          </div>
+          <span id="email-msg" style="font-size:12px;font-weight:600;margin-top:4px;display:none;"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input class="form-input" type="password" id="password" placeholder="Mínimo 6 caracteres" required/>
+        </div>
+        <button class="btn btn-primary btn-full" type="submit" id="submit-btn">Crear cuenta</button>
+      </form>
+    </div>
+
+    <div class="auth-footer">
+      ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/google-auth.js"></script>
+<script>
+  if (localStorage.getItem('temach_token')) window.location.href = '/';
+
+  initGoogleAuth();
+
+  let emailValid = true;
+  let checkTimeout;
+
+  const emailInput  = document.getElementById('email');
+  const emailStatus = document.getElementById('email-status');
+  const emailMsg    = document.getElementById('email-msg');
+
+  emailInput.addEventListener('input', () => {
+    clearTimeout(checkTimeout);
+    emailStatus.style.display = 'none';
+    emailMsg.style.display = 'none';
+    emailValid = true;
+
+    const val = emailInput.value.trim();
+    if (!val || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return;
+
+    // Pequeño delay para no disparar en cada tecla
+    checkTimeout = setTimeout(async () => {
+      emailStatus.textContent = '⏳';
+      emailStatus.style.display = 'inline';
+      try {
+        const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(val)}`);
+        const { available } = await res.json();
+        if (available) {
+          emailStatus.textContent = '✅';
+          emailMsg.textContent = 'Email disponible';
+          emailMsg.style.cssText = 'display:block;font-size:12px;font-weight:600;margin-top:4px;color:#44dd88;';
+          emailInput.style.borderColor = '#44dd88';
+          emailValid = true;
+        } else {
+          emailStatus.textContent = '❌';
+          emailMsg.textContent = 'Este email ya está registrado';
+          emailMsg.style.cssText = 'display:block;font-size:12px;font-weight:600;margin-top:4px;color:#ff6666;';
+          emailInput.style.borderColor = 'rgba(255,5,9,0.6)';
+          emailValid = false;
+        }
+      } catch (_) {
+        emailStatus.style.display = 'none';
+      }
+    }, 500);
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (!emailValid) {
+      emailInput.focus();
+    }
+  });
+
+  document.getElementById('reg-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!emailValid) return;
+    const btn = document.getElementById('submit-btn');
+    const alertEl = document.getElementById('alert');
+    alertEl.className = 'alert'; alertEl.textContent = '';
+    btn.disabled = true; btn.textContent = 'Creando cuenta...';
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          password: document.getElementById('password').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      localStorage.setItem('temach_token', data.token);
+      localStorage.setItem('temach_user', JSON.stringify(data.user));
+      window.location.href = '/';
+    } catch (err) {
+      alertEl.textContent = err.message;
+      alertEl.className = 'alert alert-error show';
+      btn.disabled = false; btn.textContent = 'Crear cuenta';
+    }
+  });
+</script>
+</body>
+</html>
