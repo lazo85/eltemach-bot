@@ -6,7 +6,7 @@ const https = require('https');
 const { getDb } = require('../database/db');
 const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
 
-const REDIRECT_URI = 'http://localhost:3001/auth/google/callback';
+const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback';
 
 function googleAuthUrl() {
   const params = new URLSearchParams({
