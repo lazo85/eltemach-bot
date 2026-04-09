@@ -49,7 +49,7 @@ router.post('/create', authMiddleware, async (req, res) => {
           failure: `${baseUrl}/payment/failure`,
           pending: `${baseUrl}/payment/pending`
         },
-        auto_return: 'approved',
+        ...(baseUrl.includes('localhost') ? {} : { auto_return: 'approved' }),
         notification_url: `${baseUrl}/api/payments/webhook`,
         metadata: {
           user_id: req.user.id,
@@ -71,8 +71,8 @@ router.post('/create', authMiddleware, async (req, res) => {
       sandboxInitPoint: response.sandbox_init_point // pruebas
     });
   } catch (err) {
-    console.error('[MercadoPago] Error creando preferencia:', err.message);
-    res.status(500).json({ error: 'Error al crear el pago' });
+    console.error('[MercadoPago] Error completo:', JSON.stringify(err, null, 2));
+    res.status(500).json({ error: 'Error al crear el pago', detail: err.message });
   }
 });
 
