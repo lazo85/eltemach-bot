@@ -3,4 +3,4 @@ node_modules/
 database/temach.db
 database/temach.db-shm
 database/temach.db-wal
-data/temach-knowledge.json
+# data/temach-knowledge.json

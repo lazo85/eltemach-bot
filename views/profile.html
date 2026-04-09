@@ -187,26 +187,25 @@
   }
 
   async function buyPackage(packageId, btn) {
-    btn.disabled = true; btn.textContent = 'Enviando...';
-    const successEl = document.getElementById('buy-success');
+    btn.disabled = true; btn.textContent = 'Procesando...';
     const errorEl = document.getElementById('buy-error');
-    successEl.className = 'alert alert-success'; errorEl.className = 'alert alert-error';
+    errorEl.className = 'alert alert-error';
 
     try {
-      const res = await fetch('/api/tokens/request', {
+      const res = await fetch('/api/payments/create', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({ packageId })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      successEl.textContent = data.message;
-      successEl.className = 'alert alert-success show';
+      // Redirigir a MercadoPago
+      window.location.href = data.sandboxInitPoint || data.initPoint;
     } catch (err) {
       errorEl.textContent = err.message;
       errorEl.className = 'alert alert-error show';
+      btn.disabled = false; btn.textContent = 'Comprar';
     }
-    btn.disabled = false; btn.textContent = 'Solicitar';
   }
 
   document.getElementById('logout-btn').addEventListener('click', (e) => {

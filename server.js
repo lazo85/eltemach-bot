@@ -24,15 +24,19 @@ const authRouter = require('./routes/auth');
 app.use('/api/auth',   authRouter);
 app.use('/auth',       authRouter);  // para /auth/google y /auth/google/callback
 app.use('/api/bot',    require('./routes/bot'));
-app.use('/api/tokens', require('./routes/tokens'));
-app.use('/api/admin',  require('./routes/admin'));
+app.use('/api/tokens',   require('./routes/tokens'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/admin',    require('./routes/admin'));
 
 // Page routes
 app.get('/',          (req, res) => res.sendFile(path.join(__dirname, 'views', 'index.html')));
 app.get('/login',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));
 app.get('/register',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'register.html')));
 app.get('/profile',   (req, res) => res.sendFile(path.join(__dirname, 'views', 'profile.html')));
-app.get('/admin',     (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/admin',           (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin.html')));
+app.get('/payment/success', (req, res) => res.sendFile(path.join(__dirname, 'views', 'payment-result.html')));
+app.get('/payment/failure', (req, res) => res.sendFile(path.join(__dirname, 'views', 'payment-result.html')));
+app.get('/payment/pending', (req, res) => res.sendFile(path.join(__dirname, 'views', 'payment-result.html')));
 
 init();
 

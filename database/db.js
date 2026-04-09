@@ -44,7 +44,23 @@ function init() {
     );
   `);
 
-  // Migración: agregar google_id si no existe (DB creada antes)
+  // Pagos MercadoPago
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id         INTEGER NOT NULL,
+      mp_preference_id TEXT,
+      mp_payment_id   TEXT UNIQUE,
+      package_id      TEXT NOT NULL,
+      tokens          INTEGER NOT NULL,
+      amount_usd      REAL NOT NULL,
+      status          TEXT DEFAULT 'pending',
+      created_at      TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Migraciones
   try { db.exec('ALTER TABLE users ADD COLUMN google_id TEXT UNIQUE'); } catch (_) {}
 
   // Crear admin si no existe
