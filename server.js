@@ -1,10 +1,10 @@
-// Carga .env manualmente para evitar conflictos con dotenvx
+// Carga .env solo en local, sin sobreescribir variables de entorno ya definidas (ej: Render)
 const fs = require('fs');
 const envPath = require('path').join(__dirname, '.env');
 if (fs.existsSync(envPath)) {
   fs.readFileSync(envPath, 'utf-8').split('\n').forEach(line => {
     const [key, ...vals] = line.split('=');
-    if (key && key.trim() && !key.startsWith('#')) {
+    if (key && key.trim() && !key.startsWith('#') && !process.env[key.trim()]) {
       process.env[key.trim()] = vals.join('=').trim();
     }
   });
