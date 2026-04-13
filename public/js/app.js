@@ -317,6 +317,61 @@ function sendSuggestion(btn) {
   sendMessage();
 }
 
+function sendPhrase(btn) {
+  document.getElementById('chat-input').value = btn.textContent.trim();
+  sendMessage();
+}
+
+// ─── Text-to-Speech ───────────────────────────────────
+let activeSpeakBtn = null;
+
+function speakText(btn, text) {
+  if (!window.speechSynthesis) return;
+
+  // Si ya está hablando el mismo botón, parar
+  if (activeSpeakBtn === btn) {
+    window.speechSynthesis.cancel();
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+    activeSpeakBtn = null;
+    return;
+  }
+
+  // Parar cualquier otro
+  window.speechSynthesis.cancel();
+  if (activeSpeakBtn) {
+    activeSpeakBtn.classList.remove('speaking');
+    activeSpeakBtn.textContent = '🔊';
+  }
+
+  // Limpiar HTML para leer solo texto plano
+  const tmp = document.createElement('div');
+  tmp.innerHTML = text;
+  const plainText = tmp.innerText || tmp.textContent || '';
+
+  const utter = new SpeechSynthesisUtterance(plainText);
+  utter.lang = 'es-MX';
+  utter.rate = 1.05;
+  utter.pitch = 0.95;
+
+  // Intentar voz en español si está disponible
+  const voices = window.speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith('es'));
+  if (esVoice) utter.voice = esVoice;
+
+  btn.classList.add('speaking');
+  btn.textContent = '⏹';
+  activeSpeakBtn = btn;
+
+  utter.onend = utter.onerror = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+    if (activeSpeakBtn === btn) activeSpeakBtn = null;
+  };
+
+  window.speechSynthesis.speak(utter);
+}
+
 // ─── DOM helpers ──────────────────────────────────────
 function getTimestamp() {
   return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
@@ -353,7 +408,22 @@ function appendMessage(role, text, isError = false) {
   timeEl.textContent = getTimestamp();
 
   content.appendChild(bubble);
-  content.appendChild(timeEl);
+
+  if (role === 'bot' && !isError) {
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    actions.appendChild(timeEl);
+    const speakBtn = document.createElement('button');
+    speakBtn.className = 'speak-btn';
+    speakBtn.title = 'Escuchar';
+    speakBtn.textContent = '🔊';
+    speakBtn.onclick = () => speakText(speakBtn, bubble.innerHTML);
+    actions.appendChild(speakBtn);
+    content.appendChild(actions);
+  } else {
+    content.appendChild(timeEl);
+  }
+
   row.appendChild(avatar);
   row.appendChild(content);
   messages.appendChild(row);

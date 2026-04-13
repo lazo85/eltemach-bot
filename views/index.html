@@ -384,6 +384,37 @@
 
     .error-bubble { background: rgba(204,26,26,.08); border-color: rgba(204,26,26,.3); color: #ff7070; }
 
+    /* ── FRASES TÍPICAS ── */
+    .phrases-row {
+      display: flex; gap: .45rem; flex-wrap: wrap;
+      padding: .5rem 1.5rem .2rem;
+    }
+    .phrase-chip {
+      background: rgba(212,160,23,.07);
+      border: 1px solid rgba(212,160,23,.22);
+      border-radius: 100px;
+      padding: .28rem .75rem;
+      font-size: .78rem; font-family: 'Rajdhani'; font-weight: 600;
+      color: var(--muted); cursor: pointer;
+      transition: all .2s; white-space: nowrap;
+    }
+    .phrase-chip:hover {
+      background: rgba(212,160,23,.15);
+      border-color: var(--gold); color: var(--gold2);
+    }
+
+    /* ── VOZ BTN ── */
+    .speak-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); padding: 2px 4px; border-radius: 6px;
+      font-size: .8rem; transition: color .2s, background .2s;
+      line-height: 1; margin-top: 2px;
+    }
+    .speak-btn:hover { color: var(--gold); background: rgba(212,160,23,.08); }
+    .speak-btn.speaking { color: var(--gold2); animation: pulse-speak .7s ease infinite alternate; }
+    @keyframes pulse-speak { from{opacity:.6} to{opacity:1} }
+    .msg-actions { display: flex; gap: .3rem; margin-top: 3px; }
+
     /* ── SCROLLBAR ── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -394,6 +425,7 @@
       .input-area { padding: .5rem .9rem .8rem; }
       .token-bar-wrap { padding: 6px .9rem 0; }
       .typing-row, .no-tokens-msg, .sources-bar { padding-left: .9rem; padding-right: .9rem; }
+      .phrases-row { padding: .4rem .9rem .1rem; }
     }
   </style>
 </head>
@@ -478,6 +510,16 @@
         <div class="typing-dots">
           <span></span><span></span><span></span>
         </div>
+      </div>
+
+      <!-- Frases típicas -->
+      <div class="phrases-row" id="phrases-row">
+        <button class="phrase-chip" onclick="sendPhrase(this)">Noooo mi compa!</button>
+        <button class="phrase-chip" onclick="sendPhrase(this)">¿Qué es un simp?</button>
+        <button class="phrase-chip" onclick="sendPhrase(this)">¿Cómo mejorar con las mujeres?</button>
+        <button class="phrase-chip" onclick="sendPhrase(this)">Mandela a la verga!</button>
+        <button class="phrase-chip" onclick="sendPhrase(this)">¿Cómo ser más alfa?</button>
+        <button class="phrase-chip" onclick="sendPhrase(this)">¿Qué dice el Temach del autodesarrollo?</button>
       </div>
 
       <!-- Input -->
