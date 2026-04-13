@@ -25,6 +25,9 @@ function secLog(level, event, data = {}) {
 // Estructura: Map<ip, { count, windowStart, blocked, blockUntil }>
 const rateLimitStore = new Map();
 
+// IPs locales exentas de rate limiting
+const RATE_LIMIT_WHITELIST = ['::1', '127.0.0.1', '::ffff:127.0.0.1'];
+
 // Limpiar entradas viejas cada 5 minutos
 setInterval(() => {
   const now = Date.now();
@@ -44,6 +47,7 @@ setInterval(() => {
 function rateLimit({ windowMs = 60_000, max = 60, blockMs = 5 * 60_000, message = 'Demasiadas solicitudes, intenta más tarde.' } = {}) {
   return (req, res, next) => {
     const ip  = getIp(req);
+    if (RATE_LIMIT_WHITELIST.includes(ip)) return next();
     const now = Date.now();
     let state = rateLimitStore.get(ip);
 
