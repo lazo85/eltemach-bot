@@ -148,7 +148,7 @@ async function init() {
   }
 
   loadHistory();
-  await Promise.all([loadUser(), loadStatus(), checkTTSConfig()]);
+  await Promise.all([loadUser(), loadStatus()]);
 }
 
 async function loadUser() {
@@ -324,22 +324,8 @@ function sendPhrase(btn) {
 
 // ─── Text-to-Speech ───────────────────────────────────
 let activeSpeakBtn = null;
-let activeAudio = null;
-let ttsEnabled = false;
-
-async function checkTTSConfig() {
-  try {
-    const res = await fetch('/api/bot/tts-config', { headers: authHeaders() });
-    const data = await res.json();
-    ttsEnabled = data.enabled;
-  } catch (_) { ttsEnabled = false; }
-}
 
 function stopCurrentSpeech() {
-  if (activeAudio) {
-    activeAudio.pause();
-    activeAudio = null;
-  }
   if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (activeSpeakBtn) {
     activeSpeakBtn.classList.remove('speaking');
@@ -348,55 +334,26 @@ function stopCurrentSpeech() {
   }
 }
 
-async function speakText(btn, html) {
-  // Si ya está hablando el mismo botón, parar
+function speakText(btn, html) {
   if (activeSpeakBtn === btn) { stopCurrentSpeech(); return; }
   stopCurrentSpeech();
+  if (!window.speechSynthesis) return;
 
-  // Texto plano
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const text = (tmp.innerText || tmp.textContent || '').trim();
   if (!text) return;
 
-  btn.classList.add('speaking');
-  btn.textContent = '⏹';
-  activeSpeakBtn = btn;
-
-  if (ttsEnabled) {
-    // ── ElevenLabs ──
-    try {
-      const res = await fetch('/api/bot/speak', {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ text })
-      });
-      if (!res.ok) throw new Error('TTS error');
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      activeAudio = audio;
-      audio.onended = audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        if (activeSpeakBtn === btn) stopCurrentSpeech();
-      };
-      audio.play();
-    } catch (_) {
-      // fallback a Web Speech si falla
-      useBrowserTTS(text, btn);
-    }
-  } else {
-    useBrowserTTS(text, btn);
-  }
-}
-
-function useBrowserTTS(text, btn) {
-  if (!window.speechSynthesis) { stopCurrentSpeech(); return; }
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'es-MX'; utter.rate = 1.05; utter.pitch = 0.95;
   const voices = window.speechSynthesis.getVoices();
   const esVoice = voices.find(v => v.lang.startsWith('es'));
   if (esVoice) utter.voice = esVoice;
+
+  btn.classList.add('speaking');
+  btn.textContent = '⏹';
+  activeSpeakBtn = btn;
+
   utter.onend = utter.onerror = () => { if (activeSpeakBtn === btn) stopCurrentSpeech(); };
   window.speechSynthesis.speak(utter);
 }

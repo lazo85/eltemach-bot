@@ -183,78 +183,7 @@ function buildFallbackReply(query, chunks, titles) {
   return reply.trim();
 }
 
-// ─── ElevenLabs TTS ──────────────────────────────────────────────────────────
-const https = require('https');
-
-function elevenLabsTTS(text, voiceId, apiKey) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-    });
-
-    const options = {
-      hostname: 'api.elevenlabs.io',
-      path: `/v1/text-to-speech/${voiceId}`,
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-
-    const req = https.request(options, (resp) => {
-      if (resp.statusCode !== 200) {
-        let raw = '';
-        resp.on('data', d => raw += d);
-        resp.on('end', () => reject(new Error(`ElevenLabs ${resp.statusCode}: ${raw}`)));
-        return;
-      }
-      const chunks = [];
-      resp.on('data', d => chunks.push(d));
-      resp.on('end', () => resolve(Buffer.concat(chunks)));
-    });
-
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
 // ─── Routes ───────────────────────────────────────────────────────────────────
-// GET /api/bot/tts-config — indica al frontend si ElevenLabs está activo
-router.get('/tts-config', (req, res) => {
-  res.json({ enabled: !!(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID) });
-});
-
-// POST /api/bot/speak — convierte texto a audio con ElevenLabs
-router.post('/speak', authMiddleware, async (req, res) => {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-
-  if (!apiKey || !voiceId) {
-    return res.status(503).json({ error: 'TTS no configurado' });
-  }
-
-  const { text } = req.body;
-  if (!text || typeof text !== 'string') {
-    return res.status(400).json({ error: 'text requerido' });
-  }
-
-  try {
-    const audioBuffer = await elevenLabsTTS(text.slice(0, 2500), voiceId, apiKey);
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', audioBuffer.length);
-    res.send(audioBuffer);
-  } catch (err) {
-    console.error('[ElevenLabs]', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.get('/status', (req, res) => {
   if (!knowledgeBase) {
     return res.json({
