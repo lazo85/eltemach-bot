@@ -42,8 +42,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── 4. API routes con rate limits ────────────────────────────────────────────
 const authRouter = require('./routes/auth');
-app.use('/api/auth', limits.auth, authRouter);
-app.use('/auth',     limits.auth, authRouter);   // /auth/google y callback
+app.use('/api/auth', authRouter);
+app.use('/auth',     authRouter);   // /auth/google y callback
 
 app.use('/api/bot',      limits.chat,  require('./routes/bot'));
 app.use('/api/tokens',   limits.api,   require('./routes/tokens'));
