@@ -3,6 +3,8 @@
    ═══════════════════════════════════════════════════════ */
 
 const API = '/api/bot';
+const HISTORY_KEY = 'temach_chat_history';
+const MAX_TOKENS = 20; // for bar display reference (pack_20 size)
 
 let chatHistory = [];
 let isSending = false;
@@ -16,6 +18,127 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` };
 }
 
+// ─── Toast system ─────────────────────────────────────
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('hiding');
+    setTimeout(() => toast.remove(), 400);
+  }, 3500);
+}
+
+// ─── Token bar ────────────────────────────────────────
+function updateTokenBar(tokens) {
+  if (currentUser?.is_admin) return;
+  const wrap  = document.getElementById('token-bar-wrap');
+  const fill  = document.getElementById('token-bar-fill');
+  const count = document.getElementById('token-bar-count');
+  if (!wrap || !fill || !count) return;
+
+  wrap.style.display = 'flex';
+  const pct = Math.min(100, Math.max(0, (tokens / MAX_TOKENS) * 100));
+  fill.style.width = pct + '%';
+  fill.style.background = tokens <= 2
+    ? 'var(--red)'
+    : tokens <= 5
+      ? '#f5a623'
+      : 'var(--cyan)';
+  count.textContent = `${tokens} token${tokens !== 1 ? 's' : ''}`;
+}
+
+// ─── LocalStorage history ─────────────────────────────
+function saveHistory() {
+  try {
+    const msgs = document.getElementById('messages');
+    const rows = [...msgs.querySelectorAll('.msg-row')];
+    const saved = rows.map(row => ({
+      role: row.classList.contains('user') ? 'user' : 'bot',
+      html: row.querySelector('.msg-bubble')?.innerHTML || '',
+      time: row.querySelector('.msg-time')?.textContent || ''
+    }));
+    // Keep only last 20 messages
+    const trimmed = saved.slice(-20);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved) || saved.length === 0) return;
+
+    const messages = document.getElementById('messages');
+    // Clear default welcome if we have history
+    messages.innerHTML = '';
+
+    saved.forEach(item => {
+      const row = document.createElement('div');
+      row.className = `msg-row ${item.role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `msg-avatar ${item.role === 'bot' ? 'bot-avatar' : 'user-avatar'}`;
+      if (item.role === 'bot') {
+        avatar.innerHTML = botAvatarSVG();
+      } else {
+        avatar.textContent = '👤';
+      }
+
+      const content = document.createElement('div');
+      content.className = 'msg-content';
+
+      const bubble = document.createElement('div');
+      bubble.className = `msg-bubble ${item.role === 'bot' ? 'bot-bubble' : 'user-bubble'}`;
+      bubble.innerHTML = item.html;
+
+      content.appendChild(bubble);
+
+      if (item.time) {
+        const timeEl = document.createElement('span');
+        timeEl.className = 'msg-time';
+        timeEl.textContent = item.time;
+        content.appendChild(timeEl);
+      }
+
+      row.appendChild(avatar);
+      row.appendChild(content);
+      messages.appendChild(row);
+    });
+
+    scrollToBottom();
+  } catch (e) {
+    localStorage.removeItem(HISTORY_KEY);
+  }
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  chatHistory = [];
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '';
+  // Re-add welcome message
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.innerHTML = `
+    <div class="msg-avatar bot-avatar">${botAvatarSVG()}</div>
+    <div class="msg-content">
+      <div class="msg-bubble bot-bubble">
+        <p><strong>Soy ElTemAIch, tu asistente IA.</strong><br/>
+        Pregúntame sobre temas de masculinidad, autodesarrollo, relaciones y psicología. Quiero ayudarte mi compa.</p>
+      </div>
+    </div>`;
+  messages.appendChild(row);
+  showToast('Conversación limpiada.', 'success');
+}
+
 // ─── Init ─────────────────────────────────────────────
 async function init() {
   const token = getToken();
@@ -24,6 +147,7 @@ async function init() {
     return;
   }
 
+  loadHistory();
   await Promise.all([loadUser(), loadStatus()]);
 }
 
@@ -40,17 +164,29 @@ async function loadUser() {
     profileLink.textContent = currentUser.username;
     profileLink.style.display = 'inline-flex';
     tokenBadge.style.display  = 'inline-flex';
+    const buyLink = document.getElementById('buy-link');
+    if (buyLink) buyLink.style.display = 'inline-block';
     tokenCount.textContent    = currentUser.is_admin ? '∞' : currentUser.tokens;
+
+    // Token badge low state
+    if (!currentUser.is_admin && currentUser.tokens <= 3) {
+      tokenBadge.classList.add('low');
+    }
 
     if (!currentUser.is_admin && currentUser.tokens <= 0) {
       document.getElementById('no-tokens-msg').style.display = 'block';
       document.getElementById('send-btn').disabled = true;
     }
 
-    // Admin: ocultar costo de token
+    // Admin: ocultar costo de token y barra
     if (currentUser.is_admin) {
       const costEl = document.getElementById('send-token-cost');
       if (costEl) costEl.style.display = 'none';
+    } else {
+      updateTokenBar(currentUser.tokens);
+      if (currentUser.tokens <= 3 && currentUser.tokens > 0) {
+        showToast(`Te quedan ${currentUser.tokens} token${currentUser.tokens !== 1 ? 's' : ''}. Considera recargar.`, 'warning');
+      }
     }
 
     if (currentUser.is_admin) {
@@ -87,11 +223,28 @@ async function loadStatus() {
 
 function updateTokenCount(tokensLeft) {
   if (tokensLeft === null || tokensLeft === undefined) return;
-  document.getElementById('token-count').textContent = tokensLeft;
+  const tokenCount = document.getElementById('token-count');
+  const tokenBadge = document.getElementById('token-badge');
+  tokenCount.textContent = tokensLeft;
+
+  if (tokensLeft <= 3) {
+    tokenBadge.classList.add('low');
+  } else {
+    tokenBadge.classList.remove('low');
+  }
+
+  updateTokenBar(tokensLeft);
+
   if (tokensLeft <= 0) {
     document.getElementById('no-tokens-msg').style.display = 'block';
     document.getElementById('send-btn').disabled = true;
+    showToast('Sin tokens disponibles. Recarga desde tu perfil.', 'error');
+  } else if (tokensLeft === 1) {
+    showToast('¡Último token! Recarga desde tu perfil.', 'warning');
   }
+
+  // Update internal user object
+  if (currentUser) currentUser.tokens = tokensLeft;
 }
 
 // ─── Chat ─────────────────────────────────────────────
@@ -131,18 +284,20 @@ async function sendMessage() {
         document.getElementById('no-tokens-msg').style.display = 'block';
         document.getElementById('send-btn').disabled = true;
         chatHistory.pop();
+        showToast('Sin tokens disponibles. Recarga desde tu perfil.', 'error');
       } else {
         appendMessage('bot', data.error || 'Error desconocido', true);
+        showToast('Error al procesar tu consulta.', 'error');
       }
     } else {
       chatHistory.push({ role: 'assistant', content: data.reply });
       appendMessage('bot', data.reply);
-      if (data.sources?.length > 0) showSources(data.sources);
       if (data.tokensLeft !== null) updateTokenCount(data.tokensLeft);
     }
   } catch (err) {
     showTyping(false);
     appendMessage('bot', 'Error de conexión. Intenta de nuevo.', true);
+    showToast('Error de conexión.', 'error');
     console.error('Chat error:', err);
   }
 
@@ -162,6 +317,14 @@ function sendSuggestion(btn) {
 }
 
 // ─── DOM helpers ──────────────────────────────────────
+function getTimestamp() {
+  return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function botAvatarSVG() {
+  return `<img src="/img/temach-avatar.png" alt="Temach" style="width:100%;height:100%;object-fit:cover;object-position:top center;"/>`;
+}
+
 function appendMessage(role, text, isError = false) {
   const messages = document.getElementById('messages');
   const row = document.createElement('div');
@@ -171,32 +334,32 @@ function appendMessage(role, text, isError = false) {
   avatar.className = `msg-avatar ${role === 'bot' ? 'bot-avatar' : 'user-avatar'}`;
 
   if (role === 'bot') {
-    avatar.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="2" width="3" height="7" rx="1.5" fill="white"/>
-      <rect x="7" y="1" width="3" height="8" rx="1.5" fill="white"/>
-      <rect x="11" y="1.5" width="3" height="7.5" rx="1.5" fill="white"/>
-      <rect x="15" y="3" width="3" height="6" rx="1.5" fill="white"/>
-      <rect x="2" y="7.5" width="17" height="7" rx="2" fill="white"/>
-      <rect x="0" y="9.5" width="4.5" height="3.5" rx="1.75" fill="white"/>
-      <rect x="4" y="13" width="13" height="5" rx="1.5" fill="white"/>
-      <path d="M3.5 17.5 C1.5 17.5 0.5 18.5 0.5 19.5 C0.5 20.5 1.5 21.5 3.5 21.5" stroke="#5DFFF1" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-      <path d="M17.5 17.5 C19.5 17.5 20.5 18.5 20.5 19.5 C20.5 20.5 19.5 21.5 17.5 21.5" stroke="#5DFFF1" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-      <line x1="4.5" y1="13.5" x2="2" y2="10" stroke="#5DFFF1" stroke-width="1" stroke-linecap="round"/>
-      <line x1="16.5" y1="13.5" x2="19" y2="10" stroke="#5DFFF1" stroke-width="1" stroke-linecap="round"/>
-    </svg>`;
+    avatar.innerHTML = botAvatarSVG();
   } else {
     avatar.textContent = '👤';
   }
+
+  const content = document.createElement('div');
+  content.className = 'msg-content';
 
   const bubble = document.createElement('div');
   bubble.className = `msg-bubble ${role === 'bot' ? 'bot-bubble' : 'user-bubble'}`;
   if (isError) bubble.classList.add('error-bubble');
   bubble.innerHTML = formatText(text);
 
+  const timeEl = document.createElement('span');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = getTimestamp();
+
+  content.appendChild(bubble);
+  content.appendChild(timeEl);
   row.appendChild(avatar);
-  row.appendChild(bubble);
+  row.appendChild(content);
   messages.appendChild(row);
   scrollToBottom();
+
+  // Persist to localStorage
+  saveHistory();
 }
 
 function formatText(text) {

@@ -125,10 +125,10 @@ Tu rol: responder preguntas basándote en el contenido real del canal.
 
 REGLAS:
 - Usa el contexto de transcripciones cuando esté disponible — es la fuente más rica.
-- Cuando no hay transcripción, usa los títulos para inferir de qué tratan los videos del canal.
 - Habla con el estilo de ELTEMACH: directo, sin rodeos, práctico, motivador, con actitud.
-- Si no tienes suficiente información, dilo claro y menciona qué videos del canal podrían tener la respuesta.
+- Si no tienes suficiente información, dilo claro pero sin mencionar videos ni links.
 - Nunca inventes citas textuales que no estén en el contexto.
+- NUNCA menciones títulos de videos, nombres de videos, URLs ni links en tus respuestas.
 - Respuestas concisas: 3-6 oraciones salvo que te pidan más detalle.`;
 
 function buildSystemPrompt(chunks, titles) {
@@ -151,6 +151,36 @@ function buildSystemPrompt(chunks, titles) {
   }
 
   return prompt;
+}
+
+// ─── Test mode fallback ───────────────────────────────────────────────────────
+const TEST_MODE = process.env.BOT_TEST_MODE === 'true';
+
+function buildFallbackReply(query, chunks, titles) {
+  if (chunks.length === 0 && titles.length === 0) {
+    return 'No encontré contenido relacionado con esa pregunta en el canal. Intentá con otras palabras.';
+  }
+
+  let reply = '';
+
+  if (chunks.length > 0) {
+    const best = chunks[0];
+    // Trim to ~400 chars for readability
+    const excerpt = best.text.length > 400 ? best.text.slice(0, 400).replace(/\s\S*$/, '') + '...' : best.text;
+    reply += excerpt;
+
+    if (chunks.length > 1) {
+      reply += '\n\n' + chunks.slice(1, 3).map(c => {
+        const t = c.text.length > 200 ? c.text.slice(0, 200).replace(/\s\S*$/, '') + '...' : c.text;
+        return t;
+      }).join('\n\n');
+    }
+  } else if (titles.length > 0) {
+    reply = 'Encontré estos temas relacionados en el canal:\n' +
+      titles.slice(0, 5).map(t => `• ${t.videoTitle}`).join('\n');
+  }
+
+  return reply.trim();
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -212,6 +242,20 @@ router.post('/chat', authMiddleware, async (req, res) => {
     content: m.content
   }));
 
+  // ── Test mode: responde directo desde la KB sin API ──────────────────────
+  if (TEST_MODE) {
+    const reply = buildFallbackReply(query, chunks, titles);
+    let tokensLeft = null;
+    if (!req.user.is_admin) {
+      getDb().prepare('UPDATE users SET tokens = tokens - 1 WHERE id = ?').run(req.user.id);
+      getDb().prepare(
+        'INSERT INTO transactions (user_id, type, amount, description) VALUES (?, ?, ?, ?)'
+      ).run(req.user.id, 'chat_usage', -1, 'Consulta al bot (test mode)');
+      tokensLeft = getDb().prepare('SELECT tokens FROM users WHERE id = ?').get(req.user.id).tokens;
+    }
+    return res.json({ reply, sources: sources.slice(0, 3), tokensLeft, testMode: true });
+  }
+
   try {
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -234,8 +278,12 @@ router.post('/chat', authMiddleware, async (req, res) => {
 
     res.json({ reply, sources: sources.slice(0, 3), tokensLeft });
   } catch (err) {
-    console.error('[ELTEMACH Bot] Error:', err.message);
-    res.status(500).json({ error: 'Error al procesar la respuesta' });
+    console.error('[ELTEMACH Bot] Error completo:', err);
+    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+    res.status(500).json({
+      error: 'Error al procesar la respuesta',
+      detail: isDev ? err.message : undefined
+    });
   }
 });
 

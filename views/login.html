@@ -3,60 +3,185 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Iniciar sesión — ElTemAIch</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link rel="stylesheet" href="/css/auth.css"/>
+  <title>Iniciar sesión — TemaichBot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
   <style>
-    .auth-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 16px 40px; }
-    .auth-box  { width: 100%; max-width: 420px; }
-    .auth-header { text-align: center; margin-bottom: 32px; }
-    .auth-logo { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; margin-bottom: 24px; }
-    .auth-logo-icon { width: 52px; height: 52px; background: var(--red); display: flex; align-items: center; justify-content: center; clip-path: polygon(15% 0%,85% 0%,100% 15%,100% 85%,85% 100%,15% 100%,0% 85%,0% 15%); }
-    .auth-form { display: flex; flex-direction: column; gap: 18px; }
-    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
-    .auth-footer a { color: var(--cyan-dark); text-decoration: none; font-weight: 600; }
-    .auth-footer a:hover { color: var(--cyan); }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold:   #d4a017;
+      --gold2:  #f5c842;
+      --red:    #cc1a1a;
+      --red2:   #ff3333;
+      --dark:   #080808;
+      --dark2:  #101010;
+      --border: rgba(212,160,23,0.2);
+      --glow:   0 0 22px rgba(212,160,23,0.45);
+      --text:   #e8e0d0;
+      --muted:  #7a7060;
+    }
+    html, body {
+      min-height: 100vh;
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    h1,h2,h3 { font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
+    a { text-decoration: none; }
+
+    /* BACKGROUND */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(212,160,23,.07) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* WRAP */
+    .auth-wrap {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 3rem 1.2rem;
+    }
+
+    /* BOX */
+    .auth-box {
+      width: 100%; max-width: 420px;
+    }
+
+    /* LOGO */
+    .auth-logo {
+      display: flex; flex-direction: column;
+      align-items: center; gap: .6rem;
+      margin-bottom: 2rem;
+    }
+    .auth-logo-icon {
+      width: 60px; height: 60px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--gold), var(--red));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; box-shadow: var(--glow);
+    }
+    .auth-logo-name {
+      font-family: 'Bebas Neue'; font-size: 1.5rem;
+      letter-spacing: 4px; color: #fff;
+    }
+    .auth-logo-name em { color: var(--gold); font-style: normal; }
+
+    /* TITLE */
+    .auth-title {
+      font-size: 2rem; color: #fff; text-align: center;
+      margin-bottom: .3rem;
+    }
+    .auth-sub {
+      text-align: center; color: var(--muted);
+      font-size: .9rem; letter-spacing: 1px;
+      margin-bottom: 2rem;
+    }
+
+    /* DIVIDER */
+    .auth-divider {
+      display: flex; align-items: center; gap: .8rem;
+      margin-bottom: 1.2rem;
+    }
+    .auth-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .auth-divider-text {
+      font-family: 'Orbitron'; font-size: .58rem;
+      letter-spacing: 2px; color: var(--muted);
+    }
+
+    /* CARD */
+    .auth-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2rem;
+      margin-bottom: 1.2rem;
+    }
+
+    /* FORM */
+    .form-group { display: flex; flex-direction: column; gap: .35rem; margin-bottom: 1rem; }
+    .form-label {
+      font-family: 'Orbitron'; font-size: .62rem;
+      letter-spacing: 2px; color: var(--muted);
+    }
+    .form-input {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(212,160,23,.2);
+      border-radius: 10px; padding: .75rem 1rem;
+      color: var(--text); font-family: 'Rajdhani'; font-size: 1rem;
+      outline: none; transition: border-color .3s, box-shadow .3s;
+      width: 100%;
+    }
+    .form-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(212,160,23,.1);
+    }
+    .form-input::placeholder { color: #3a3530; }
+
+    /* BUTTON */
+    .btn-gold {
+      width: 100%; padding: .85rem;
+      background: linear-gradient(135deg, var(--gold2), var(--gold));
+      color: #000; font-family: 'Bebas Neue'; font-size: 1.1rem;
+      letter-spacing: 2px; border: none; border-radius: 10px;
+      cursor: pointer; box-shadow: var(--glow);
+      transition: all .3s; margin-top: .3rem;
+    }
+    .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(212,160,23,.6); }
+    .btn-gold:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* GOOGLE BTN */
+    #google-btn-wrap {
+      display: flex; justify-content: center;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ALERT */
+    .alert { display: none; border-radius: 10px; padding: .7rem 1rem; font-size: .85rem; margin-bottom: 1rem; }
+    .alert.show { display: block; }
+    .alert-error { background: rgba(204,26,26,.08); border: 1px solid rgba(204,26,26,.3); color: var(--red2); }
+
+    /* FOOTER */
+    .auth-footer {
+      text-align: center; font-size: .88rem;
+      color: var(--muted);
+    }
+    .auth-footer a { color: var(--gold); font-weight: 600; }
+    .auth-footer a:hover { text-decoration: underline; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--dark); }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(var(--gold), var(--red)); border-radius: 3px; }
   </style>
 </head>
 <body>
 <div class="auth-wrap">
   <div class="auth-box">
-    <div class="auth-header">
-      <a href="/" class="auth-logo">
-        <div class="auth-logo-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="2" width="3.5" height="8" rx="1.75" fill="white"/>
-            <rect x="7.5" y="1" width="3.5" height="9" rx="1.75" fill="white"/>
-            <rect x="12" y="1.5" width="3.5" height="8.5" rx="1.75" fill="white"/>
-            <rect x="16.5" y="3" width="3.5" height="7" rx="1.75" fill="white"/>
-            <rect x="2" y="8" width="19" height="7.5" rx="2" fill="white"/>
-            <rect x="0" y="10" width="5" height="4" rx="2" fill="white"/>
-            <rect x="4.5" y="14" width="14" height="5.5" rx="1.5" fill="white"/>
-            <path d="M4 19.5 C2 19.5 1 20.5 1 21.5 C1 22.5 2 23.5 4 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-            <path d="M20 19.5 C22 19.5 23 20.5 23 21.5 C23 22.5 22 23.5 20 23.5" stroke="#5DFFF1" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-            <line x1="5" y1="15" x2="2" y2="11" stroke="#5DFFF1" stroke-width="1.1" stroke-linecap="round"/>
-            <line x1="19" y1="15" x2="22" y2="11" stroke="#5DFFF1" stroke-width="1.1" stroke-linecap="round"/>
-          </svg>
-        </div>
-      </a>
-      <div class="page-title">Iniciar sesión</div>
-      <div class="page-sub">Accede a tu cuenta ElTemAIch</div>
+
+    <div class="auth-logo">
+      <div class="auth-logo-icon">⚡</div>
+      <div class="auth-logo-name">TEMAICH<em>BOT</em></div>
     </div>
 
-    <div id="google-btn-wrap" style="margin-bottom:12px;display:flex;justify-content:center;">
+    <h1 class="auth-title">Iniciar sesión</h1>
+    <p class="auth-sub">Accede a tu cuenta</p>
+
+    <div id="google-btn-wrap">
       <div id="google-signin-btn"></div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div style="flex:1;height:1px;background:var(--border);"></div>
-      <span style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;">o con email</span>
-      <div style="flex:1;height:1px;background:var(--border);"></div>
+    <div class="auth-divider">
+      <div class="auth-divider-line"></div>
+      <span class="auth-divider-text">o con email</span>
+      <div class="auth-divider-line"></div>
     </div>
 
-    <div class="card">
+    <div class="auth-card">
       <div class="alert alert-error" id="alert"></div>
-      <form class="auth-form" id="login-form">
+      <form id="login-form">
         <div class="form-group">
           <label class="form-label">Email</label>
           <input class="form-input" type="email" id="email" placeholder="tu@email.com" required/>
@@ -65,13 +190,14 @@
           <label class="form-label">Contraseña</label>
           <input class="form-input" type="password" id="password" placeholder="••••••••" required/>
         </div>
-        <button class="btn btn-primary btn-full" type="submit" id="submit-btn">Entrar</button>
+        <button class="btn-gold" type="submit" id="submit-btn">⚡ Entrar</button>
       </form>
     </div>
 
     <div class="auth-footer">
       ¿No tienes cuenta? <a href="/register">Regístrate gratis</a>
     </div>
+
   </div>
 </div>
 
@@ -84,8 +210,8 @@
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submit-btn');
-    const alert = document.getElementById('alert');
-    alert.className = 'alert'; alert.textContent = '';
+    const alertEl = document.getElementById('alert');
+    alertEl.className = 'alert'; alertEl.textContent = '';
     btn.disabled = true; btn.textContent = 'Entrando...';
 
     try {
@@ -103,9 +229,9 @@
       localStorage.setItem('temach_user', JSON.stringify(data.user));
       window.location.href = '/';
     } catch (err) {
-      alert.textContent = err.message;
-      alert.className = 'alert alert-error show';
-      btn.disabled = false; btn.textContent = 'Entrar';
+      alertEl.textContent = err.message;
+      alertEl.className = 'alert alert-error show';
+      btn.disabled = false; btn.textContent = '⚡ Entrar';
     }
   });
 </script>

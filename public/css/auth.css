@@ -242,6 +242,23 @@ html, body {
 }
 .google-btn:hover { background: #f8f8f8; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 
+/* ─── Skeleton loading ───────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-3) 25%, #222 50%, var(--bg-3) 75%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 1.4s ease infinite !important;
+  color: transparent !important;
+  border-radius: 3px;
+  pointer-events: none;
+  user-select: none;
+}
+.skeleton * { visibility: hidden; }
+.skel-row td { border-color: transparent !important; }
+
 /* ─── Scrollbar ──────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: #1a1a1a; }
