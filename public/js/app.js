@@ -148,7 +148,7 @@ async function init() {
   }
 
   loadHistory();
-  await Promise.all([loadUser(), loadStatus()]);
+  await Promise.all([loadUser(), loadStatus(), checkTTSConfig()]);
 }
 
 async function loadUser() {
@@ -324,51 +324,80 @@ function sendPhrase(btn) {
 
 // ─── Text-to-Speech ───────────────────────────────────
 let activeSpeakBtn = null;
+let activeAudio = null;
+let ttsEnabled = false;
 
-function speakText(btn, text) {
-  if (!window.speechSynthesis) return;
+async function checkTTSConfig() {
+  try {
+    const res = await fetch('/api/bot/tts-config', { headers: authHeaders() });
+    const data = await res.json();
+    ttsEnabled = data.enabled;
+  } catch (_) { ttsEnabled = false; }
+}
 
-  // Si ya está hablando el mismo botón, parar
-  if (activeSpeakBtn === btn) {
-    window.speechSynthesis.cancel();
-    btn.classList.remove('speaking');
-    btn.textContent = '🔊';
-    activeSpeakBtn = null;
-    return;
+function stopCurrentSpeech() {
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio = null;
   }
-
-  // Parar cualquier otro
-  window.speechSynthesis.cancel();
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
   if (activeSpeakBtn) {
     activeSpeakBtn.classList.remove('speaking');
     activeSpeakBtn.textContent = '🔊';
+    activeSpeakBtn = null;
   }
+}
 
-  // Limpiar HTML para leer solo texto plano
+async function speakText(btn, html) {
+  // Si ya está hablando el mismo botón, parar
+  if (activeSpeakBtn === btn) { stopCurrentSpeech(); return; }
+  stopCurrentSpeech();
+
+  // Texto plano
   const tmp = document.createElement('div');
-  tmp.innerHTML = text;
-  const plainText = tmp.innerText || tmp.textContent || '';
-
-  const utter = new SpeechSynthesisUtterance(plainText);
-  utter.lang = 'es-MX';
-  utter.rate = 1.05;
-  utter.pitch = 0.95;
-
-  // Intentar voz en español si está disponible
-  const voices = window.speechSynthesis.getVoices();
-  const esVoice = voices.find(v => v.lang.startsWith('es'));
-  if (esVoice) utter.voice = esVoice;
+  tmp.innerHTML = html;
+  const text = (tmp.innerText || tmp.textContent || '').trim();
+  if (!text) return;
 
   btn.classList.add('speaking');
   btn.textContent = '⏹';
   activeSpeakBtn = btn;
 
-  utter.onend = utter.onerror = () => {
-    btn.classList.remove('speaking');
-    btn.textContent = '🔊';
-    if (activeSpeakBtn === btn) activeSpeakBtn = null;
-  };
+  if (ttsEnabled) {
+    // ── ElevenLabs ──
+    try {
+      const res = await fetch('/api/bot/speak', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ text })
+      });
+      if (!res.ok) throw new Error('TTS error');
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      activeAudio = audio;
+      audio.onended = audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        if (activeSpeakBtn === btn) stopCurrentSpeech();
+      };
+      audio.play();
+    } catch (_) {
+      // fallback a Web Speech si falla
+      useBrowserTTS(text, btn);
+    }
+  } else {
+    useBrowserTTS(text, btn);
+  }
+}
 
+function useBrowserTTS(text, btn) {
+  if (!window.speechSynthesis) { stopCurrentSpeech(); return; }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-MX'; utter.rate = 1.05; utter.pitch = 0.95;
+  const voices = window.speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith('es'));
+  if (esVoice) utter.voice = esVoice;
+  utter.onend = utter.onerror = () => { if (activeSpeakBtn === btn) stopCurrentSpeech(); };
   window.speechSynthesis.speak(utter);
 }
 
