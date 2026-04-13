@@ -286,7 +286,8 @@ async function sendMessage() {
         chatHistory.pop();
         showToast('Sin tokens disponibles. Recarga desde tu perfil.', 'error');
       } else {
-        appendMessage('bot', data.error || 'Error desconocido', true);
+        const errMsg = data.detail ? `${data.error}: ${data.detail}` : (data.error || 'Error desconocido');
+        appendMessage('bot', errMsg, true);
         showToast('Error al procesar tu consulta.', 'error');
       }
     } else {

@@ -279,10 +279,9 @@ router.post('/chat', authMiddleware, async (req, res) => {
     res.json({ reply, sources: sources.slice(0, 3), tokensLeft });
   } catch (err) {
     console.error('[ELTEMACH Bot] Error completo:', err);
-    const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
     res.status(500).json({
       error: 'Error al procesar la respuesta',
-      detail: isDev ? err.message : undefined
+      detail: err.message || String(err)
     });
   }
 });
